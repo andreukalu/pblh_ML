@@ -1,174 +1,45 @@
+# CODE TO PROCESS CALIPSO MEASUREMENT FILES AND GET 2D PROFILES INTERSECTING RS LAUNCHING STATIONS #
+# In order to save memory space, we first need to get the RS launching station locations,
+# and then get and process the calipso over-passes
+
+# Import the custom functions and requirements
 from calipso_utilities import *
 
+# GET THE RADIOSONDE DATASET
+
+# Set the dimension of the lat/lon window around RS launching station
 res = 1.0
+
+# Read the pickle file containing the RS-measured PBLH
 base_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
-df_rs_1 = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh'))
-df_rs_2 = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh_south_america'))
-df_rs_3 = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh_remaining'))
-df_rs_4 = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh_china'))
-df_rs_5 = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh_africa'))
-df = pd.concat([df_rs_1,df_rs_2,df_rs_3,df_rs_4,df_rs_5],axis=0).reset_index()
+df_rs = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh'))
 
-print(df.head(5))
-df['lon'] = df['lon'].astype(float).round(1)
-df['lat'] = df['lat'].astype(float).round(1)
-df_rs = df[['lon','lat']].drop_duplicates()
+# Get unique lat/lon coordinates set for all RS stations
+df_rs['lon'] = df_rs['lon'].astype(float).round(1)
+df_rs['lat'] = df_rs['lat'].astype(float).round(1)
+df_rs = df_rs[['lon','lat']].drop_duplicates()
 
-del df
-gc.collect()
+# Generate the lat/lon windows arround the RS launching stations 
 df_rs['lon_min'] = df_rs['lon']-res
 df_rs['lon_max'] = df_rs['lon']+res
 df_rs['lat_min'] = df_rs['lat']-res
 df_rs['lat_max'] = df_rs['lat']+res
 
-# df_c1 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_us'))
-# df_c2 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_gruan'))
-# df_c3 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_germany'))
-# df_c4 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_bcn'))
-# df_c5 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_uw'))
-# df_c6 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_ch'))
-# df_c7 = pd.read_pickle(os.path.join(base_path,'calipso_CNN_rem'))
-
+# PROCESS THE CALIPSO L1 MEASUREMENT FILES
+# Set the number of parallelization threads
 num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/uw_coincidental_hr/'
 
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-print(glob.glob(os.path.join(path, '**', '*.hdf')))
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_uw')
+# Set the path at which CALIOP files are stored
+base_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/uw_coincidental_hr/'
 
-del df_out
-gc.collect()
+# Set the output pickle file path
+output_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_uw'
 
-num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/us_coincidental_hr/'
+# Process all the files
+df_out = read_all_CALIPSO_data(base_path, df_rs, num_threads= num_threads)
 
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-print(glob.glob(os.path.join(path, '**', '*.hdf')))
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_us')
-
-del df_out
-gc.collect()
-
-num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/gruan_coincidental_hr/'
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_gruan')
-
-del df_out
-gc.collect()
-
-num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/germany_coincidental_hr/'
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_germany')
-
-del df_out
-gc.collect()
-
-num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/ch_coincidental_hr/'
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_ch')
-
-del df_out
-gc.collect()
-
-num_threads = 1024
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/barcelona_coincidental_hr/'
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_bcn')
-
-del df_out
-gc.collect()
-
-num_threads = 256
-path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/sa_af_coincidental_hr/'
-name = '*.hdf'
-filepaths = glob.glob(os.path.join(path, '**', '*.hdf'), recursive=True)
-filepaths = [file.replace("\\", "/") for file in filepaths]
-print(filepaths)
-with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-    
-    # Submit each file to the executor
-    futures = [executor.submit(read_file_CALIPSO,filepath,df_rs,0.25,1,'CNN') for filepath in filepaths]
-    
-    # Gather the results
-    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-    
-df_out = pd.concat(results).reset_index()
-df_out.to_pickle('/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_rem')
+# Save the obtained dataframe to a pickle
+df_out.to_pickle(output_path)
 
 del df_out
 gc.collect()
