@@ -14,12 +14,11 @@ import gc
 import re
 from scipy.interpolate import interp1d
 import math
-
-
-pd.set_option('display.max_colwidth', None)
-
-pd.options.mode.chained_assignment = None  # default='warn'
 import warnings
+
+########### TERMINAL VISUALIZATION CONFIGURATION #######
+pd.set_option('display.max_colwidth', None)
+pd.options.mode.chained_assignment = None
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 ########### PARAMETER NAMES CONVENTIONS ################
@@ -35,6 +34,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
 ########### ATMOSPHERIC METHODS ########################
+
 # Compute the virtual potential temperature
 def virtual_potential_temperature(temp, pres, rh):
     # Constants
@@ -89,51 +89,8 @@ def bulk_richardson_number(temp, pres, rh, hws, altitude):
     Rib = (9.81 * altitude / vpt0) * ((vpt - vpt0) / (hws)**2)
     return Rib
 
-#Compute PBLH using the parcel method for day scenarios (CBL)
-def parcel_method_day(altitude,temp,pres,rh,plot_flag=0):
-
-    #Get virtual potential temperature and its value at the lowest altitude
-    vpt = virtual_potential_temperature(temp, pres, rh)
-    vpt0 = vpt[0]
-
-    #Get the altitudes in which vpt exceedes vpt at ground level
-    aux = altitude[vpt>vpt0]
-    
-    if plot_flag == 1:
-        plt.figure()
-        plt.plot(vpt,altitude)
-        plt.plot([vpt0,vpt0],[0,8000])
-
-    #Check if this value exist and return the pblh
-    if len(aux)==0:
-        ablh = 0
-    else:
-        ablh = aux[0]
-        
-    return ablh
-
-#Compute PBLH using the parcel method for night scenarios (SBL)
-def parcel_method_night(altitude,temp,plot_flag=0):
-
-    try:
-        #Get temperatures lower than 1000 m height for SBL top detection
-        tempsmooth = temp[altitude<1000]
-        #Smooth the temperature profile
-        tempsmooth = smooth(tempsmooth,10)
-
-        #Get the maximum value of temperature profile to determine the beginning of the inversion at the PBL top
-        ablh = altitude[np.argmax(tempsmooth)]
-        
-        if plot_flag == 1:
-            plt.figure()
-            plt.plot(tempsmooth,altitude[altitude<1000])
-            plt.plot([min(tempsmooth),max(tempsmooth)],[aux,aux])
-    except:
-        ablh = 0
-    return ablh
-
 #Compute PBLH using the bulk-Richardson Number method
-def get_ablh_Ri(altitude,temp,pres,rh,hws,plot_flag=0):
+def get_ablh_Ri(altitude, temp, pres, rh, hws, plot_flag=0):
 
     #Compute the bulk-Richardson number profile
     bRi = bulk_richardson_number(temp,pres,rh,hws,altitude)
@@ -179,8 +136,8 @@ def get_ablh_Ri(altitude,temp,pres,rh,hws,plot_flag=0):
         
     return ablh
 
-#Function to compute PBL top altitude using either Parcel method or the bulk-Richardson number method
-def get_ablh(df,method='Ri',plot_flag = 0,get_clouds=0):
+#Function to compute PBLH through the bulk-Richardson number method
+def get_ablh(df, plot_flag = 0):
     try:
         #LIMIT ALTITUDE TO 8000
         df_aux = df[df['geopot']<8000]
@@ -192,279 +149,66 @@ def get_ablh(df,method='Ri',plot_flag = 0,get_clouds=0):
         altitude = df_aux['geopot'].to_numpy() # Geopotential altitude in m
         hws = df_aux['hws'].to_numpy() # HWS in m/s
 
-        altitude_res = np.max(np.diff(altitude[altitude<4000])) #Compute the resolution of altitude
+        # Compute the resolution of altitude as the maximum difference between measurement altitudes below 4000 m
+        altitude_res = np.max(np.diff(altitude[altitude<4000])) 
         
+        # Plot the profiles if requested
         if plot_flag == 1:
             plt.figure()
             plt.plot(temp,altitude)
             plt.plot(rh,altitude)
             plt.plot(hws,altitude)
-
-        #Get if it is day or night
-        # night = int(datetime.strptime(str(df['time'].iloc[0]),'%Y%m%d%H').hour < 9)
-
-        #Switch between PBLH estimation methods
         
-        # PARCEL METHOD
-        if method == 'parcel': 
-            if night == 0:
-                ablh = parcel_method_day(altitude,temp,pres,rh,plot_flag)
-            else:
-                ablh = parcel_method_night(altitude,temp,plot_flag)
-
-        # BULK-RICHARDSON NUMBER METHOD
-        elif method == 'Ri':
-            ablh = get_ablh_Ri(altitude,temp,pres,rh,hws,plot_flag)
+        # Get the PBLH through bulk-Richardson number method
+        ablh = get_ablh_Ri(altitude,temp,pres,rh,hws,plot_flag)
         
+        # Set-up the output dataframe
         df_out = df[0:1]    
         df_out['ablh_rs'] = ablh
         df_out['min_altitude_rs'] = altitude[0]
         df_out['altitude_res'] = altitude_res
         df_out = df_out.drop(columns=['temp','pres','geopot','rh','hws'])
-    except Exception as e: 
-        # print(e)
-        df_out = pd.DataFrame()
-    return df_out
 
-#Function to compute PBL top altitude using either Parcel method or the bulk-Richardson number method
-def get_rh(df):
-    try:
-        #LIMIT ALTITUDE TO 8000
-        df_aux = df[df['geopot']<8000]
-    
-        #Get RS data
-        rh = df_aux['rh'].to_numpy() # RH in %
-        altitude = df_aux['geopot'].to_numpy() # Geopotential altitude in m
-    
-        altitude_res = np.max(np.diff(altitude[altitude<4000])) #Compute the resolution of altitude
-    
-        #Interpolate the RS data every 30 m (emulate CALIPSO)
-        min_alt = altitude.min()
-        max_alt = 3000
-        out_altitude = np.zeros((101,1))
-        new_altitude = np.arange(round(min_alt/30)*30, max_alt + 1, 30).reshape(-1, 1)
-        out_altitude[round(min_alt/30):] = new_altitude
-        
-        # Identify finite values
-        finite_mask = np.isfinite(rh)
-        
-        # Filter out rows with infinite values
-        altitude = altitude[finite_mask]
-        rhi = rh[finite_mask]
-    
-        out_rh = np.zeros((101,1))
-        
-        # Create the interpolation function
-        interp_func = interp1d(altitude, rhi, kind='linear', fill_value="extrapolate")
-        
-        # Interpolate rBi values for the new altitude array
-        rhi = interp_func(new_altitude)
-        out_rh[round(min_alt/30):] = rhi.reshape(-1, 1)
-    
-        column_names = [f"RH{i+1}" for i in range(len(out_rh))]
-        
-        df_out = df[0:1]    
-        df_out['min_altitude_rs'] = altitude[0]
-        df_out['altitude_res'] = altitude_res
-        
-        df_out = pd.concat([df_out, pd.DataFrame(out_rh.T, columns=column_names, index=df_out.index)], axis=1)
-        df_out = df_out.drop(columns=['temp','pres','geopot','rh','hws'])
-    except Exception as e:
+    except Exception as e: 
+
         print(e)
         df_out = pd.DataFrame()
+
     return df_out
 
 ############ UTILITIES FUNCTIONS #######################
-# Function to retrieve the BLH top altitude from Radiosonde profiles
-def get_ablh_group(group,method='Ri',plot_flag = 0):
+# Function to retrieve the PBLH from Radiosonde profiles
+def get_ablh_group(group, plot_flag = 0):
     try:
         #Get data (df) and group (g) information
         df = group[1]
         g = group[0]
 
         #Generate output dataframe with ablh
-        df_out = get_ablh(df,method,plot_flag)
+        df_out = get_ablh(df,plot_flag)
 
         #Add date to output dataframe
         df_out['time'] = pd.to_datetime(g[0],format='%Y%m%d%H')
+
     except Exception as e:
+
         print(e)
         df_out = pd.DataFrame()
+
     return df_out
 
-def get_rh_group(group,vert_res=300,plot_flag = 0):
-    try:
-        #Get data (df) and group (g) information
-        df = group[1]
-        g = group[0]
+############ READ THE RADIOSONDE FILES FROM EACH SOURCE ############################
+# sources meaning:
+# DWD: German Weather Service
+# NOAA: National Oceanic and Atmospheric Administration
+# GRUAN: Global Climate Observing System Reference Upper-Air Network
+# UWYO: University of Wyoming upper-air sounding data-set
 
-        #Generate output dataframe with ablh
-        df_out = get_rh(df)
-
-        #Add date to output dataframe
-        df_out['time'] = pd.to_datetime(g[0],format='%Y%m%d%H')
-    except Exception as e:
-        print(e)
-        df_out = pd.DataFrame()
-    return df_out
-
-def read_all_RS_data_rh(base_path,sources=['GERMANY','BCN','US','GRUAN','UW'],num_threads=256):
-
-    df_global = pd.DataFrame()
-
-    if 'GERMANY' in sources:
-        name = 'produkt*.txt'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        print(filepaths)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_GERMANY_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'BCN' in sources:
-        name = '*.TXT'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_BCN_rh, filepath, 1) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-        name = 'DORS*'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_BCN_rh, filepath, 2) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'US' in sources:
-        name = 'US*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'NOAA', 'DATA', name), recursive=True)
-        print(os.path.join(base_path, 'NOAA', 'DATA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'CHINA' in sources:
-        name = 'CH*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'NOAA', 'DATA', name), recursive=True)
-        print(os.path.join(base_path, 'NOAA', 'DATA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'AFRICA' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'AFRICA', name), recursive=True)
-        print(os.path.join(base_path, 'AFRICA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'SOUTHAMERICA' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'SOUTHAMERICA', name), recursive=True)
-        print(os.path.join(base_path, 'SOUTHAMERICA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-    
-    if 'REMAINING' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'REMAINING', name), recursive=True)
-        print(os.path.join(base_path, 'REMAINING', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'GRUAN' in sources:
-        name = '*.nc'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        print(filepaths)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_GRUAN_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'UW' in sources:
-        name = 'sounding*.txt'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        print(filepaths)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_UW_rh, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-    return df_global
-
-def read_all_RS_data(base_path,sources=['GERMANY','BCN','US','GRUAN','UW'],num_threads=256):
+def read_all_RS_data(base_path, sources=['DWD','NOAA','GRUAN','UWYO'], num_threads=256):
     
     df_global = pd.DataFrame()
 
-    if 'GERMANY' in sources:
+    if 'DWD' in sources:
         name = 'produkt*.txt'
         filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
         filepaths = [file.replace("\\", "/") for file in filepaths]
@@ -479,97 +223,10 @@ def read_all_RS_data(base_path,sources=['GERMANY','BCN','US','GRUAN','UW'],num_t
         df = pd.concat(results)
         df_global = pd.concat([df_global,df])
 
-    if 'BCN' in sources:
-        name = '*.TXT'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_BCN, filepath, 1) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-        name = 'DORS*'
-        filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_BCN, filepath, 2) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'US' in sources:
-        name = 'US*.txt'
+    if 'NOAA' in sources:
+        name = '*.txt'
         filepaths = glob.glob(os.path.join(base_path, 'NOAA', 'DATA', name), recursive=True)
         print(os.path.join(base_path, 'NOAA', 'DATA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'CHINA' in sources:
-        name = 'CH*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'NOAA', 'DATA', name), recursive=True)
-        print(os.path.join(base_path, 'NOAA', 'DATA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'AFRICA' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'AFRICA', name), recursive=True)
-        print(os.path.join(base_path, 'AFRICA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-
-    if 'SOUTHAMERICA' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'SOUTHAMERICA', name), recursive=True)
-        print(os.path.join(base_path, 'SOUTHAMERICA', name))
-        filepaths = [file.replace("\\", "/") for file in filepaths]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            # Submit each file to the executor
-            futures = [executor.submit(process_file_rs_US, filepath) for filepath in filepaths]
-            
-            # Gather the results
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-        df = pd.concat(results)
-        df_global = pd.concat([df_global,df])
-    
-    if 'REMAINING' in sources:
-        name = '*.txt'
-        filepaths = glob.glob(os.path.join(base_path, 'REMAINING', name), recursive=True)
-        print(os.path.join(base_path, 'REMAINING', name))
         filepaths = [file.replace("\\", "/") for file in filepaths]
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
             # Submit each file to the executor
@@ -596,7 +253,7 @@ def read_all_RS_data(base_path,sources=['GERMANY','BCN','US','GRUAN','UW'],num_t
         df = pd.concat(results)
         df_global = pd.concat([df_global,df])
 
-    if 'UW' in sources:
+    if 'UWYO' in sources:
         name = 'sounding*.txt'
         filepaths = glob.glob(os.path.join(base_path, '**', name), recursive=True)
         filepaths = [file.replace("\\", "/") for file in filepaths]
@@ -610,52 +267,41 @@ def read_all_RS_data(base_path,sources=['GERMANY','BCN','US','GRUAN','UW'],num_t
 
         df = pd.concat(results)
         df_global = pd.concat([df_global,df])
+        
     return df_global
 
 def process_ABLH_from_all_RS_data(df,num_threads=256):
     result_df = apply_multithreaded_groupby(df)
     return result_df
 
-# Function to read Germany RS measurements files
+# Function to read DWD RS measurements files
 def process_file_rs_GERMANY(path):
+
+    # Show the file being read
     print(path)
+
+    # Read the CSV file
     df = pd.read_csv(path,sep=';',names=['id','date','point','qn','lat','lon','geopot','pres','temp','rh','td','hws','wd','eor'], header=1)
+    
+    # Drop the unnecessary columns
     df = df.drop(columns=['point','qn','td','wd','eor'])
+    
     df = df.rename(columns={'date':'time'})
 
-    df_out = apply_multithreaded_groupby(df)
-    print(path, ' Finished')
-    return df_out
+    df_out = apply_multithreaded_groupby(df, func=get_ablh_group)
+    
+    #FREE MEMORY
+    del df
 
-# Function to read Barcelona RS measurement files
-def process_file_rs_BCN(path,type):
-    print(path)
-    try:
-        if type==1:
-            datef = path[-12:-4]
-            datef = datetime.strptime(datef, '%y%m%d%H')
-        else:
-            datef = path[-10:]
-            datef = datetime.strptime(datef,'%H%Y%m%d')
-        
-        if datef <= datetime(2011,2,16):
-            df = pd.read_csv(path,sep=r'\s+',names=['min','s','vel','geopot','pres','temp','rh','td','wd','hws','lon','lat'], header=1)
-            df = df.drop(columns=['min','s','vel','td','wd'])
-            df = df.assign(time=datef)
-            df['time'] = pd.to_datetime(df['date'],format='%y%m%d%H')
-        else:
-            df = pd.read_csv(path,sep=r'\s+',names=['t','geopot','pres','temp','rh','td','hws','wd','vef','vnf','lat','lon'], header=1)
-            df = df.drop(columns=['vef','vnf','t','td','wd','vef','vnf'])
-            df = df.assign(time=datef)
-        df['id'] = 'BCN'
-        df_out = apply_multithreaded_groupby(df,num_threads=8)
-        return df_out
-    except: 
-        return
+    # Force garbage collection
+    gc.collect()
+
+    return df_out
 
 # Function to read NOAA RS measurement files
 def process_file_rs_US(path):
     print(path)
+
     # Initialize lists to store parsed data
     headers = []
     data = []
@@ -680,7 +326,8 @@ def process_file_rs_US(path):
                         date = datetime.strptime(header[13:26], "%Y %m %d %H")
                     except:
                         date = datetime.strptime(header[13:23], "%Y %m %d")
-                        
+
+                    # Get the RS file parameters    
                     reltime = int(header[27:31])
                     numlev = int(header[32:36])
                     p_src = header[37:45]
@@ -711,18 +358,34 @@ def process_file_rs_US(path):
                         WSPD = float(data_line[46:51])/10
                         data.append([id,date,reltime,numlev,p_src,np_src,lat,lon,LVLTYP1,LVLTYP2,ETIME,PRESS,PFLAG,GPH,ZFLAG,TEMP,TFLAG,RH,DPDP,WDIR,WSPD])
                         i += 1
+
+        # Set the column names according to our convention
         column_names = ['id', 'time', 'RELTIME', 'NUMLEV', 'P_SRC', 'NP_SRC', 'lat', 'lon',\
                         'LVLTYP1', 'LVLTYP2', 'ETIME', 'pres', 'PFLAG', 'geopot', 'ZFLAG', 'temp', 'TFLAG', 'rh', 'td', 'wd', 'hws']
+        
+        # Generate the dataframe
         df = pd.DataFrame(data,columns=column_names)
+
+        # Drop unnecessary columns
         df = df.drop(columns=['RELTIME','NUMLEV','P_SRC','NP_SRC','LVLTYP1','LVLTYP2','ETIME','PFLAG','ZFLAG','TFLAG','wd'])
+
+        # Compute the RH from Temperature and Dewpoint Temperature
         df['rh'] = df.apply(lambda x: relative_humidity(x['temp'], x['td']), axis=1)
+
+        # Remove the outliers
         df = df[~df.isin([-999.9, -9999]).any(axis=1)]
-        df_out = apply_multithreaded_groupby(df)
+
+        # Compute the PBLH from the RS profiles
+        df_out = apply_multithreaded_groupby(df, func=get_ablh_group)
+
         #FREE MEMORY
         del df
+
         # Force garbage collection
         gc.collect()
+
     except Exception as e:
+
         print(e)
         df_out = pd.DataFrame() 
 
@@ -732,9 +395,11 @@ def process_file_rs_US(path):
 def process_file_rs_GRUAN(path):
     try:
         print(path)
+
         # Open the NetCDF file
         dataset = netCDF4.Dataset(path, 'r')
         
+        # Get the measurement data
         data = dict()
         data['lat'] = dataset.variables['lat'][:]
         data['lon'] = dataset.variables['lon'][:]
@@ -744,20 +409,28 @@ def process_file_rs_GRUAN(path):
         data['geopot'] = dataset.variables['alt'][:]
         data['pres'] = dataset.variables['press'][:]
         
+        # Generate the dataframe
         df = pd.DataFrame.from_dict(data)
         timestamp = pd.to_datetime(dataset.getncattr('g.General.Timestamp'))
+
         df['time'] = timestamp
         df['id'] = dataset.__dict__['g.MeasuringSystem.ID']
-        df_out = apply_multithreaded_groupby(df)
+
+        # Compute the PBLH
+        df_out = apply_multithreaded_groupby(df, func=get_ablh_group)
+
     except Exception as e:
+
         print(e)
         df_out = pd.DataFrame()
+
     return df_out
 
 # Function to read University of Wyoming RS measurement files
 def process_file_rs_UW(path):
     try:
         print(path)
+
         # Open the NetCDF file
         with open(path, 'r') as file:
             lines = file.readlines()
@@ -834,231 +507,10 @@ def process_file_rs_UW(path):
                 i += 1
         df['time'] = pd.to_datetime(df['time'],format='%y%m%d/%H')        
         df = df.reset_index(drop=True)
-        df_out = apply_multithreaded_groupby(df)
-    except Exception as e:
-        print(e)
-        df_out = pd.DataFrame()
-    return df_out
 
-# Function to read Germany RS measurements files
-def process_file_rs_GERMANY_rh(path):
-    print(path)
-    df = pd.read_csv(path,sep=';',names=['id','date','point','qn','lat','lon','geopot','pres','temp','rh','td','hws','wd','eor'], header=1)
-    df = df.drop(columns=['point','qn','td','wd','eor'])
-    df = df.rename(columns={'date':'time'})
+        # Compute the PBLH from RS profiles
+        df_out = apply_multithreaded_groupby(df, func=get_ablh_group)
 
-    df_out = apply_multithreaded_groupby(df,func=get_rh_group)
-    print(path, ' Finished')
-    return df_out
-
-# Function to read Barcelona RS measurement files
-def process_file_rs_BCN_rh(path,type):
-    print(path)
-    try:
-        if type==1:
-            datef = path[-12:-4]
-            datef = datetime.strptime(datef, '%y%m%d%H')
-        else:
-            datef = path[-10:]
-            datef = datetime.strptime(datef,'%H%Y%m%d')
-        
-        if datef <= datetime(2011,2,16):
-            df = pd.read_csv(path,sep=r'\s+',names=['min','s','vel','geopot','pres','temp','rh','td','wd','hws','lon','lat'], header=1)
-            df = df.drop(columns=['min','s','vel','td','wd'])
-            df = df.assign(time=datef)
-            df['time'] = pd.to_datetime(df['date'],format='%y%m%d%H')
-        else:
-            df = pd.read_csv(path,sep=r'\s+',names=['t','geopot','pres','temp','rh','td','hws','wd','vef','vnf','lat','lon'], header=1)
-            df = df.drop(columns=['vef','vnf','t','td','wd','vef','vnf'])
-            df = df.assign(time=datef)
-        df['id'] = 'BCN'
-        df_out = apply_multithreaded_groupby(df,num_threads=8,func=get_rh_group)
-        return df_out
-    except: 
-        return
-
-# Function to read NOAA RS measurement files
-def process_file_rs_US_rh(path):
-    print(path)
-    # Initialize lists to store parsed data
-    headers = []
-    data = []
-
-    try:
-        # Read the file line by line
-        with open(path, 'r') as file:
-            lines = file.readlines()
-
-            # Iterate through lines
-            i = 0
-            
-            while i < len(lines):
-                line = lines[i].strip()
-                
-                if line.startswith('#'):
-                    # Parse header line
-                    header = line.strip()
-                    headrec = header[0]
-                    id = header[1:12]
-                    try:
-                        date = datetime.strptime(header[13:26], "%Y %m %d %H")
-                    except:
-                        date = datetime.strptime(header[13:23], "%Y %m %d")
-                        
-                    reltime = int(header[27:31])
-                    numlev = int(header[32:36])
-                    p_src = header[37:45]
-                    np_src = header[56:54]
-                    lat = float(header[55:62])/10000
-                    lon = float(header[63:71])/10000
-
-                    if date.year<2010:
-                        i = i + numlev + 1
-                    else:
-                        i += 1
-                else:
-                    # Parse data lines until the next header or end of file
-                    while i < len(lines) and not lines[i].startswith('#'):
-                        data_line = lines[i].strip()
-                        LVLTYP1 = data_line[0]
-                        LVLTYP2 = data_line[1]
-                        ETIME = data_line[3:8]
-                        PRESS = float(data_line[9:15])/100
-                        PFLAG = data_line[15]
-                        GPH = int(data_line[16:21])
-                        ZFLAG = data_line[21]
-                        TEMP = float(data_line[22:27])/10
-                        TFLAG = data_line[27]
-                        RH = float(data_line[28:33])/10
-                        DPDP = float(data_line[34:39])/10
-                        WDIR = int(data_line[40:45])
-                        WSPD = float(data_line[46:51])/10
-                        data.append([id,date,reltime,numlev,p_src,np_src,lat,lon,LVLTYP1,LVLTYP2,ETIME,PRESS,PFLAG,GPH,ZFLAG,TEMP,TFLAG,RH,DPDP,WDIR,WSPD])
-                        i += 1
-        column_names = ['id', 'time', 'RELTIME', 'NUMLEV', 'P_SRC', 'NP_SRC', 'lat', 'lon',\
-                        'LVLTYP1', 'LVLTYP2', 'ETIME', 'pres', 'PFLAG', 'geopot', 'ZFLAG', 'temp', 'TFLAG', 'rh', 'td', 'wd', 'hws']
-        df = pd.DataFrame(data,columns=column_names)
-        df = df.drop(columns=['RELTIME','NUMLEV','P_SRC','NP_SRC','LVLTYP1','LVLTYP2','ETIME','PFLAG','ZFLAG','TFLAG','wd'])
-        df['rh'] = df.apply(lambda x: relative_humidity(x['temp'], x['td']), axis=1)
-        df = df[~df.isin([-999.9, -9999]).any(axis=1)]
-        df_out = apply_multithreaded_groupby(df,func=get_rh_group)
-        #FREE MEMORY
-        del df
-        # Force garbage collection
-        gc.collect()
-    except Exception as e:
-        print(e)
-        df_out = pd.DataFrame() 
-
-    return df_out
-
-# Function to read GRUAN RS measurement files
-def process_file_rs_GRUAN_rh(path):
-    try:
-        print(path)
-        # Open the NetCDF file
-        dataset = netCDF4.Dataset(path, 'r')
-        
-        data = dict()
-        data['lat'] = dataset.variables['lat'][:]
-        data['lon'] = dataset.variables['lon'][:]
-        data['temp'] = dataset.variables['temp'][:] - 273.15
-        data['rh'] = dataset.variables['rh'][:]
-        data['hws'] = dataset.variables['wspeed'][:]
-        data['geopot'] = dataset.variables['alt'][:]
-        data['pres'] = dataset.variables['press'][:]
-        
-        df = pd.DataFrame.from_dict(data)
-        timestamp = pd.to_datetime(dataset.getncattr('g.General.Timestamp'))
-        df['time'] = timestamp
-        df['id'] = dataset.__dict__['g.MeasuringSystem.ID']
-        df_out = apply_multithreaded_groupby(df,func=get_rh_group)
-    except Exception as e:
-        print(e)
-        df_out = pd.DataFrame()
-    return df_out
-
-# Function to read University of Wyoming RS measurement files
-def process_file_rs_UW_rh(path):
-    try:
-        print(path)
-        # Open the NetCDF file
-        with open(path, 'r') as file:
-            lines = file.readlines()
-        
-            i = 0
-            
-            flag = 0
-            read_data = 0
-            header_data = 0
-        
-            data_columns = ['pres', 'geopot', 'temp', 'rh', 'hws']
-            columns = ['id','time','lat','lon']
-            columns = columns + data_columns
-            df = pd.DataFrame(columns=columns)
-            while i < len(lines):
-                line = lines[i].strip()
-        
-                if (line.startswith('----------')) & (flag == 0):
-                    read_data = 0
-                    flag = 1
-                    i += 1
-                    continue
-                    
-                if (line.startswith('----------')) & (flag == 1):
-                    read_data = 1
-                    flag = 0
-                    i += 1
-                    continue  
-        
-                if read_data == 1:
-                    # Parse data lines until the next header or end of file
-                    data_aux = []
-                    while i < len(lines) and not lines[i].startswith('</PRE>'):
-                        data_line = lines[i]
-                        pres = to_float(data_line[0:7])
-                        geopot = to_float(data_line[8:14])
-                        temp = to_float(data_line[15:20])
-                        rh = to_float(data_line[32:35])
-                        hws = to_float(data_line[53:56])*0.51444 
-                        data_aux.append([pres,geopot,temp,rh,hws])
-                        i += 1
-                        
-                    df_aux = pd.DataFrame(data=data_aux,columns = data_columns)
-                    read_data = 0
-                    header_data = 1
-                                    
-                if (line.startswith('Station number')) & (header_data == 1):
-                    data_line = lines[i].strip()
-                    df_aux['id'] = to_float(data_line[15:19])
-                    i += 1
-                    continue
-    
-                if (line.startswith('Observation time')) & (header_data == 1):
-                    data_line = lines[i].strip()
-                    df_aux['time'] = data_line[18:27]
-                    i += 1
-                    continue    
-                
-                if (line.startswith('Station latitude')) & (header_data == 1):
-                    data_line = lines[i].strip()
-                    df_aux['lat'] = to_float(data_line[18:24])
-                    i += 1
-                    continue
-        
-                
-                if (line.startswith('Station longitude')) & (header_data == 1):
-                    data_line = lines[i].strip()
-                    df_aux['lon'] = to_float(data_line[19:25])
-                    df = pd.concat([df,df_aux])
-                    i += 1
-                    header_data = 0
-                    continue
-        
-                i += 1
-        df['time'] = pd.to_datetime(df['time'],format='%y%m%d/%H')        
-        df = df.reset_index(drop=True)
-        df_out = apply_multithreaded_groupby(df,func=get_rh_group)
     except Exception as e:
         print(e)
         df_out = pd.DataFrame()
@@ -1084,12 +536,6 @@ def to_float(val):
         return float(val)
     except ValueError:
         return np.nan  # Return NaN if conversion fails
-        
-############ SIGPRO FUNCTIONS ##########################
-def smooth(y, box_pts):
-    box = np.ones(box_pts)/box_pts
-    y_smooth = np.convolve(y, box, mode='same')
-    return y_smooth
 
 ############ PLOTTING FUNCTIONS ########################
 #Custom scatter with statistical indicators and regression lines
@@ -1127,74 +573,3 @@ def scatter(x,y,label_x,label_y,limx,limy,filename='example.png'):
         
         plt.show()
         plt.savefig(filename)
-
-############ OLD FUNCTIONS NOT USED ####################
-def potential_temperature(temp,pres):
-    pt = (temp+274.15)*(pres[0]/pres)**(287/1004)
-    return pt
-
-def potential_temperature_0(temp):
-    pt = (temp[0]+0.5+274.15)*(1)**(287/1004)
-    return pt
-    
-def ablh_model(z,bm,bu,zm,s):
-    return (bm+bu)/2+(bm-bu)/2*special.erf((z-zm)/s)
-
-def hw_transform(x,altitude,deltah):
-    tr = np.array([])
-    for z in altitude:
-        idx_pos = (altitude >= z - deltah/2) & (altitude <= z)
-        idx_neg = (altitude >= z) & (altitude <= z + deltah/2)
-    
-        tf_pos = np.mean(x[idx_pos])
-        tf_neg = -np.mean(x[idx_neg])
-    
-        tf = tf_pos + tf_neg
-        tr = np.append(tr,tf)
-    return tr
-    
-def combined_method(altitude,vpt,plot_flag=0):
-    try:
-        #PREPARE DATA
-        #FIRST APPLY HAAR-WAVELET (HW) TRANSFORM
-    
-        #COMPUTE DELTA-H
-        deltah = 20*(altitude[1]-altitude[0])
-    
-        #COMPUTE HW TRANSFORM
-        #LIMIT TO 3000 m height
-        idx = altitude<3000
-        hw = hw_transform(vpt[idx],altitude[idx],deltah)
-
-        plt.figure()
-        plt.plot(hw,altitude[idx])
-        #GET INITIAL POINTS USING HW FOR CURVE FIT
-        #GET PROVISIONAL ABLH TO BE USED AS INITIAL POINT FOR CURVEFIT
-        zm_i = altitude[np.nanargmin(hw)]
-        print(zm_i)
-        s_i = zm_i/2.77
-        
-        #GET INITIAL POINT FOR BM AND BU
-        BM_i = np.nanmean(vpt[0:np.nanargmin(hw)])
-        BU_i = np.nanmean(vpt[np.nanargmin(hw):])
-
-        popt, pcov = curve_fit(
-            f=ablh_model,       # model function
-            xdata=altitude,   # x data
-            ydata=vpt,   # y data
-            p0=(BM_i, BU_i, zm_i, s_i),      # initial value of the parameters (bm, bu, zm, s)
-        )
-    except:
-        return 0
-        
-    if plot_flag == 1:
-        plt.figure()
-        print('a')
-        plt.plot(ablh_model(altitude,popt[0],popt[1],popt[2],popt[3]),altitude)
-        plt.plot(vpt,altitude)
-    return popt[2]
-
-def get_clouds_idx(altitude,temp,dtemp):
-    cloud_altitudes_idx = (temp[altitude>100]-dtemp[altitude>100])<2
-    cloud_sum = np.sum(cloud_altitudes_idx.astype(int))
-    return cloud_altitudes_idx, cloud_sum
