@@ -5,12 +5,6 @@ This repository contains code to preprocess data and train a machine learning (M
 
 The dataset combines **radiosonde vertical profiles** from multiple sources with corresponding **CALIOP TAB** profiles.
 
----
-
-Here's a polished and clearer version of your **Data Access** section:
-
----
-
 ## Data Access
 
 ### Processed Data
