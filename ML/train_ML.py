@@ -1,8 +1,5 @@
 from utilities_ML import *
 
-# === Define paths and parameters ===
-pickles_path = ''  # Path to data used for training and test
-
 # Define flags for model configuration
 method = 'rf'           # Machine Learning model type: 'rf' (Random Forest) or 'gb' (Gradient Boosting)
 param = False           # If True, enables hyperparameter tuning

@@ -2,7 +2,6 @@
 from utilities_ML import *
 
 # === Define paths and experiment-level parameters ===
-pickles_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'  # Folder where pickled datasets are stored
 method = 'rf'                  # Chosen ML method (here: Random Forest)
 param = False                  # Placeholder for parameter tuning (unused in this script)
 random_flag = False           # Placeholder for randomization control (unused here)

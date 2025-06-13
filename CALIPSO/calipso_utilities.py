@@ -15,6 +15,11 @@ import concurrent.futures
 from sklearn.model_selection import train_test_split
 import psutil
 
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+from paths_definition import rs_path, c_path, pickles_path
+
 ########### TERMINAL VISUALIZATION CONFIGURATION #######
 pd.set_option('display.max_columns', None)
 

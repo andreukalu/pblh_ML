@@ -36,8 +36,13 @@ from timezonefinder import TimezoneFinder
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pickle
 import shapefile  # PyShp to read coastline without geopandas
-# from shapely.geometry import Point
+
 from scipy.spatial import cKDTree
+
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+from paths_definition import pickles_path
 
 ########### TERMINAL VISUALIZATION CONFIGURATION #######
 pd.set_option('display.max_columns', None)

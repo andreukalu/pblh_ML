@@ -10,15 +10,8 @@ from calipso_utilities import *
 # Set the dimension of the lat/lon window around RS launching station
 res = 1.0
 
-# Read the pickle file containing the RS-measured PBLH
-rs_path = ''
-# Set the path at which CALIOP files are stored
-c_path = ''
-# Set the output pickle file path
-output_path = ''
-
 # Load Radiosonde data
-df_rs = pd.read_pickle(os.path.join(rs_path,'radiosonde_ablh'))
+df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_ablh'))
 
 # Get unique lat/lon coordinates set for all RS stations
 df_rs['lon'] = df_rs['lon'].astype(float).round(1)
@@ -39,7 +32,7 @@ num_threads = 256
 df_out = read_all_CALIPSO_data(c_path, df_rs, num_threads= num_threads)
 
 # Save the obtained dataframe to a pickle
-df_out.to_pickle(output_path)
+df_out.to_pickle(pickles_path)
 
 del df_out
 gc.collect()

@@ -1,14 +1,7 @@
 from utilities_ML import *
 
-# Read the pickle file containing the RS-measured PBLH
-rs_path = ''
-# Set the path at which CALIOP files are stored
-c_path = ''
-# Set the output pickle file path
-output_path = ''
-
 # Read radiosonde data
-df_rs = pd.read_pickle(os.path.join(rs_path,'radiosonde_ablh'))
+df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_ablh'))
 
 #Remove non-trustworthy stations
 df_rs = df_rs[df_rs['id']!=723.0]
@@ -18,7 +11,7 @@ df_rs = df_rs[df_rs['id']!='USM00072681']
 df_rs = df_rs[df_rs['id']!=348.0]
 
 # Read calipso data
-df_c = pd.read_pickle(os.path.join(c_path,'calipso_CNN_gruan'))
+df_c = pd.read_pickle(os.path.join(pickles_path,'calipso_CNN_gruan'))
 
 ########### DATA INTERSECTION ########################
 # Intersect in time and space radiosonde and calipso
