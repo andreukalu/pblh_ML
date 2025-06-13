@@ -16,6 +16,11 @@ from scipy.interpolate import interp1d
 import math
 import warnings
 
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+from paths_definition import rs_path, pickles_path
+
 ########### TERMINAL VISUALIZATION CONFIGURATION #######
 pd.set_option('display.max_colwidth', None)
 pd.options.mode.chained_assignment = None
