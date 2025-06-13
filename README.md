@@ -1,7 +1,7 @@
 
 # ML-Based PBLH Retrieval from CALIOP TAB Measurements
 
-This repository contains code to preprocess data and train a machine learning (ML) model to estimate the **Planetary Boundary Layer Height (PBLH)** using **CALIOP** measurements of **TAB** profiles.
+This repository contains code to preprocess data and train a machine learning (ML) model to estimate the **Planetary Boundary Layer Height (PBLH)** using level-1 **CALIOP** Total Attenuated Backscatter (**TAB**) profiles.
 
 The dataset combines **radiosonde vertical profiles** from multiple sources with corresponding **CALIOP TAB** profiles.
 
