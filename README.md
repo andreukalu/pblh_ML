@@ -90,16 +90,20 @@ rs_path and c_path should contain radiosonde and calipso raw data, respectively.
 Run `/RADIOSONDE/process_RS.py` to generate the PBLH radiosonde dataset from raw radiosonde measurements. 
 * Inputs: Raw radiosonde measurement data.
 * Outputs: radiosonde\_pblh.pkl pickle with the PBLH radiosonde dataset.
+
 Run `/CALIPSO/process_CALIPSO.py` to generate the CALIPSO dataset from raw TAB CALIPSO measurements. 
 * Inputs: Raw level 1 CALIPSO data.
 * Outputs: calipso.pkl pickle with the CALIPSO pre-processed dataset.
 * Requirements: radiosonde\_pblh.pkl pickle to be stored at pickles_path.
+
 Run `/ML/prepare_data.py` to generate train and test datasets for ML.
 * Inputs: radiosonde\_pblh.pkl and calipso.pkl.
 * Outputs: Xtrain, Xval, and Xtest pickles.
+
 Run `/ML/train_ML.py` to carry out hyper-parameter tuning, training and testing of the ML model. 
 * Inputs: Xtrain, Xval, and Xtest pickles.
 * Outputs: predictions pickle with the ML results. If param and random_flag are set to True, Hyper-parameter tuning results are stored at {method}_grid_search_iterations.txt.
+
 Run `/ML/ablation_study.py` to run the ablation study.
 * Inputs: Xtrain, Xval, and Xtest pickles.
 * Outputs: ablation_results.txt with the ablation study results.
