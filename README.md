@@ -27,9 +27,9 @@ The data used comprises radiosonde vertical profiles from different sources and 
 ## INSTALLATION AND USAGE PROCESS
 1. Pull github repository from https://github.com/andreukalu/pblh_ML/
 2. cd to project folder and activate conda environment from environment.yml:
-   '''
+   ```
    conda env create -f environment.yml
-   '''
+   ```
 3. Set each
       * pickles_path: path at which the processed data is stored [Download processed data](#processed-data-access)
       * (optional) rs_path: path at which the raw radiosonde data is stored [Download raw data](#raw-data-access)
