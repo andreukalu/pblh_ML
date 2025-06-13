@@ -22,4 +22,4 @@ num_threads = 16
 df_ablh = read_all_RS_data(rs_path, sources=['UWYO','DWD','NOAA','GRUAN'], num_threads= num_threads)
 
 # Save the obtained dataframe to a pickle
-df_ablh.to_pickle(pickles_path)
+df_ablh.to_pickle(os.path.join(pickles_path,'radiosonde_pblh.pkl'))

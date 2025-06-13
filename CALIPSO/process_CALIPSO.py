@@ -11,7 +11,7 @@ from calipso_utilities import *
 res = 1.0
 
 # Load Radiosonde data
-df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_ablh'))
+df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_pblh.pkl'))
 
 # Get unique lat/lon coordinates set for all RS stations
 df_rs['lon'] = df_rs['lon'].astype(float).round(1)
@@ -32,7 +32,7 @@ num_threads = 256
 df_out = read_all_CALIPSO_data(c_path, df_rs, num_threads= num_threads)
 
 # Save the obtained dataframe to a pickle
-df_out.to_pickle(pickles_path)
+df_out.to_pickle(os.path.join(pickles_path,'calipso.pkl'))
 
 del df_out
 gc.collect()

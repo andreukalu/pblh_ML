@@ -1,7 +1,9 @@
+# CODE TO GENERATE THE TRAIN AND TEST FILES FROM PROCESSED RADIOSONDE AND CALIOP DATA
+
 from utilities_ML import *
 
 # Read radiosonde data
-df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_ablh'))
+df_rs = pd.read_pickle(os.path.join(pickles_path,'radiosonde_pblh.pkl'))
 
 #Remove non-trustworthy stations
 df_rs = df_rs[df_rs['id']!=723.0]
@@ -11,7 +13,7 @@ df_rs = df_rs[df_rs['id']!='USM00072681']
 df_rs = df_rs[df_rs['id']!=348.0]
 
 # Read calipso data
-df_c = pd.read_pickle(os.path.join(pickles_path,'calipso_CNN_gruan'))
+df_c = pd.read_pickle(os.path.join(pickles_path,'calipso.pkl'))
 
 ########### DATA INTERSECTION ########################
 # Intersect in time and space radiosonde and calipso

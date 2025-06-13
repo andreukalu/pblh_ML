@@ -1,9 +1,12 @@
-from utilities_ML import *
+# CODE TO FIND, TRAIN, AND TEST THE ML MODEL FROM POSTPROCESSED TRAIN AND TEST DATA SETS
+# USE THE FLAGS DEFINITIONS TO CARRY OUT HYPER-PARAMETER TUNING
 
 # Define flags for model configuration
 method = 'rf'           # Machine Learning model type: 'rf' (Random Forest) or 'gb' (Gradient Boosting)
 param = False           # If True, enables hyperparameter tuning
 random_flag = False     # If True, uses RandomizedSearchCV instead of GridSearchCV
+
+from utilities_ML import *
 
 # === Load training, validation, and test data ===
 train_df = pd.read_pickle(os.path.join(pickles_path, 'Xtrain')).drop(columns=['index'])
