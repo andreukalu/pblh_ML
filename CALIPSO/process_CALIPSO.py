@@ -11,8 +11,14 @@ from calipso_utilities import *
 res = 1.0
 
 # Read the pickle file containing the RS-measured PBLH
-base_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
-df_rs = pd.read_pickle(os.path.join(base_path,'radiosonde_ablh'))
+rs_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
+# Set the path at which CALIOP files are stored
+c_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/uw_coincidental_hr/'
+# Set the output pickle file path
+output_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_uw'
+
+# Load Radiosonde data
+df_rs = pd.read_pickle(os.path.join(rs_path,'radiosonde_ablh'))
 
 # Get unique lat/lon coordinates set for all RS stations
 df_rs['lon'] = df_rs['lon'].astype(float).round(1)
@@ -29,14 +35,8 @@ df_rs['lat_max'] = df_rs['lat']+res
 # Set the number of parallelization threads
 num_threads = 256
 
-# Set the path at which CALIOP files are stored
-base_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/CALIPSO/uw_coincidental_hr/'
-
-# Set the output pickle file path
-output_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/calipso_CNN_uw'
-
 # Process all the files
-df_out = read_all_CALIPSO_data(base_path, df_rs, num_threads= num_threads)
+df_out = read_all_CALIPSO_data(c_path, df_rs, num_threads= num_threads)
 
 # Save the obtained dataframe to a pickle
 df_out.to_pickle(output_path)
