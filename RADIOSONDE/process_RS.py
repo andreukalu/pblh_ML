@@ -1,10 +1,37 @@
-########### CODE TO PROCESS THE RADIOSONDE FILES FROM EACH SOURCE AND OBTAIN THE PBLH DATASET ################
-# The code is based on the file structure of its creator. They can be adapted to the user.
-# Radiosonde measurement files should be stored following these characteristics:
-# UWYO: name of the file has to be 'sounding*.txt'
-# GRUAN: has to be a netcdf
-# NOAA: files have to be stored in a sub-folder called NOAA
-# DWD: name of the file has to be 'produkt*.txt'
+# =============================================================================
+# RADIOSONDE FILE PROCESSING TO GENERATE PBLH DATASET
+#
+# Description:
+# This script processes radiosonde (RS) profile measurements from multiple sources 
+# (UWYO, DWD, NOAA, GRUAN) and extracts Planetary Boundary Layer Height (PBLH) 
+# information into a unified dataset. It relies on consistent file naming and 
+# directory structure conventions for each data source.
+#
+# Data Source Expectations:
+# - UWYO: Files must be named 'sounding*.txt'
+# - DWD: Files must be named 'produkt*.txt'
+# - NOAA: Files must be stored in a sub-folder named 'NOAA'
+# - GRUAN: Files must be in NetCDF format
+#
+# Key Steps:
+# - Invoke a multithreaded loader to process all valid files from the specified sources
+# - Extract and compute PBLH-related features using custom parsing logic
+# - Consolidate the data into a single pandas DataFrame
+# - Save the resulting dataset to a pickle for further analysis
+#
+# Parameters:
+# - `num_threads`: Controls the number of parallel processing threads (default: 16)
+#
+# Dependencies:
+# - Custom module: `RS_utilities.py` for file-specific parsers and logic
+# - Python packages: pandas, numpy, os, gc, concurrent.futures
+#
+# Output:
+# - `radiosonde_pblh.pkl`: A pickle file containing the processed PBLH dataset
+#
+# Author: Andreu Salcedo-Bosch
+# Date: 13/06/2025
+# =============================================================================
 
 # Import the custom functions and requirements
 from RS_utilities import *

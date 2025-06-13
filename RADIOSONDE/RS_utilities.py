@@ -37,7 +37,6 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 # -lon:       Longitude
 # -time:      Datetime
 
-
 ########### ATMOSPHERIC METHODS ########################
 
 # Compute the virtual potential temperature

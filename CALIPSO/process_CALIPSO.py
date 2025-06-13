@@ -1,6 +1,30 @@
-# CODE TO PROCESS CALIPSO MEASUREMENT FILES AND GET 2D PROFILES INTERSECTING RS LAUNCHING STATIONS #
-# In order to save memory space, we first need to get the RS launching station locations,
-# and then get and process the calipso over-passes
+# =============================================================================
+# CALIPSO L1 DATA PROCESSING FOR RS LAUNCH LOCATION INTERSECTIONS
+#
+# Description:
+# This script processes CALIPSO Level 1 backscatter measurement files and extracts 
+# 2D vertical profiles that intersect with radiosonde (RS) launching stations. 
+# It does this by first determining the RS station coordinates, creating a spatial 
+# window around them, and then filtering CALIPSO overpasses to retain only the 
+# relevant segments. The final output is a compact dataset suitable for ML applications.
+#
+# Key Steps:
+# - Load radiosonde station locations from pre-processed pickle
+# - Define spatial windows (±1.0°) around each RS station
+# - Process all CALIPSO overpass files using multithreaded parallelism
+# - Save the processed CALIPSO data to a pickle file for downstream use
+#
+# Notes:
+# - Spatial filtering helps reduce memory usage and processing time
+# - Processing uses a high number of threads for performance (default: 256)
+#
+# Dependencies:
+# - Requires `calipso_utilities.py` for custom file reading and processing functions
+# - Python packages: pandas, numpy, gc, os, concurrent.futures
+#
+# Author: Andreu Salcedo Bosch
+# Date: 13/06/2025
+# =============================================================================
 
 # Import the custom functions and requirements
 from calipso_utilities import *

@@ -1,4 +1,43 @@
-# === Import all utilities from the specified module (e.g., for metrics, plotting, etc.) ===
+# =============================================================================
+# ABLATION STUDY USING RANDOM FOREST ON ATMOSPHERIC PROFILE DATA
+#
+# Description:
+# This script performs an ablation study on a Random Forest regression model 
+# trained to predict atmospheric boundary layer height (or related target).
+# Multiple subsets of features are tested to evaluate their impact on model 
+# performance, using preprocessed and filtered training, validation, and test datasets.
+#
+# Key Steps:
+# - Load preprocessed train, validation, and test datasets (pickled DataFrames)
+# - Perform geographical filtering to exclude data points outside specified lat/lon bounds
+# - Adjust target variable by subtracting minimum altitude to focus on relative height
+# - Create grouping labels based on spatial coordinates (for potential grouped CV)
+# - Define multiple feature subsets corresponding to different ablation scenarios
+# - For each subset:
+#     * Train a Random Forest model with fixed hyperparameters
+#     * Evaluate model performance on both training and test sets (R², RMSE)
+#     * Save trained model and prediction results for further analysis
+# - Compile and save a summary of ablation results to a text file
+#
+# Parameters:
+# - Random Forest hyperparameters: n_estimators=850, max_depth=43, min_samples_leaf=4, etc.
+#
+# Input:
+# - Pickle files: 'Xtrain', 'Xval', 'Xtest' containing features and target variable 'y'
+#
+# Output:
+# - Saved Random Forest models (model_0.pkl, model_1.pkl, ...)
+# - Prediction results on test and train sets (pickled DataFrames)
+# - Summary of evaluation metrics for each ablation scenario (ablation_results.txt)
+#
+# Dependencies:
+# - pandas, numpy, sklearn, pickle, math, os
+# - Custom utilities imported via 'from utilities_ML import *'
+#
+# Author: Andreu Salcedo-Bosch
+# Date: 13/06/2025
+# =============================================================================
+
 from utilities_ML import *
 
 # === Define paths and experiment-level parameters ===
@@ -73,15 +112,6 @@ for i, columns in enumerate(columns_list):
     train_df_subset = train_df[columns].copy()
     val_df_subset = val_df[columns].copy()
     test_df_subset = test_df[columns].copy()
-
-    # === Optionally add Gaussian noise to simulate uncertainty ===
-    noise_std = 1.0
-    if 'lat_d' in train_df_subset.columns:
-        train_df_subset['lat_d'] += np.random.normal(0, noise_std, train_df_subset.shape[0])
-    if 'lon_d' in train_df_subset.columns:
-        train_df_subset['lon_d'] += np.random.normal(0, noise_std, train_df_subset.shape[0])
-    if 'min_altitude_rs' in train_df_subset.columns:
-        train_df_subset['min_altitude_rs'] += np.random.normal(0, 0.1, train_df_subset.shape[0])
 
     print(f"\n▶️ Description: {description_list[i]}")
     print('Train set size:', train_df_subset.shape)

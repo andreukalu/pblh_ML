@@ -152,6 +152,14 @@ def compute_sum(matrix, axis=0):
     out = np.cumsum(matrix)
     return out
 
+
+def is_in_test_region(lat, lon, regions):
+    return any(
+        (r["min_lat"] <= lat <= r["max_lat"]) and
+        (r["min_lon"] <= lon <= r["max_lon"])
+        for r in regions
+    )
+
 def compute_sector_mean(vec,sec=10):
     means = []
     segment_length = int(np.round(len(vec)/sec))
