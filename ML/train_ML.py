@@ -1,7 +1,7 @@
 from utilities_ML import *
 
 # === Define paths and parameters ===
-pickles_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'  # Path to stored pickle data
+pickles_path = ''  # Path to data used for training and test
 
 # Define flags for model configuration
 method = 'rf'           # Machine Learning model type: 'rf' (Random Forest) or 'gb' (Gradient Boosting)

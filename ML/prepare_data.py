@@ -1,11 +1,11 @@
 from utilities_ML import *
 
 # Read the pickle file containing the RS-measured PBLH
-rs_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
+rs_path = ''
 # Set the path at which CALIOP files are stored
-c_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
+c_path = ''
 # Set the output pickle file path
-output_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES'
+output_path = ''
 
 # Read radiosonde data
 df_rs = pd.read_pickle(os.path.join(rs_path,'radiosonde_ablh'))

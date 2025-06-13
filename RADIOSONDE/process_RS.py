@@ -10,10 +10,10 @@
 from RS_utilities import *
 
 # Set the path at which the radiosonde files are stored
-base_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/RADIOSONDE'
+base_path = ''
 
 # Set the output path for the obtained dataframe
-output_path = '/mnt/csl/work/andreu.salcedo/Articles/ABLH/02Data/PICKLES/radiosonde_ablh'
+output_path = ''
 
 # Number of threads for parallelization
 num_threads = 16
