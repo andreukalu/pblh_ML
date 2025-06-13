@@ -1,37 +1,83 @@
-# ML METHOD FOR PBLH RETRIEVAL FROM CALIOP TAB MEASUREMENTS
 
-Code to prepare the data and fit a machine learning (ML) model to estimate the Planetary Boundary Layer Height (PBLH) from CALIOP measurements of TAB profiles.
+# ML-Based PBLH Retrieval from CALIOP TAB Measurements
 
-The data used comprises radiosonde vertical profiles from different sources and CALIOP TAB profiles. 
+This repository contains code to preprocess data and train a machine learning (ML) model to estimate the **Planetary Boundary Layer Height (PBLH)** using **CALIOP** measurements of **TAB** profiles.
 
-## DATA ACCESS 
-### PROCESSED DATA ACCESS
-* Processed radiosonde, CALIOP and training and test datasets can be accessed at: 
-> https://zenodo.org/records/15639750
+The dataset combines **radiosonde vertical profiles** from multiple sources with corresponding **CALIOP TAB** profiles.
 
-### RAW DATA ACCESS
-* Raw radiosonde data can be openly accessed through:<br/>
-> DWD: German Weather Service. https://opendata.dwd.de/<br/>
-> NOAA: National Oceanic and Atmospheric Administration https://www.ncei.noaa.gov/products/weather-balloon/integrated-global-radiosonde-archive  <br/>
-> GRUAN: Global Climate Observing System Reference Upper-Air Network https://www.gruan.org/data/measurements/sonde-launches  <br/>
-> UWYO: University of Wyoming upper-air sounding data-set https://weather.uwyo.edu/upperair/sounding.html  <br/>
+---
 
-* Raw CALIOP measurements can be openly accessed through:  <br/>
-> https://subset.larc.nasa.gov/calipso/
+## Data Access
 
-## CODE FOLDERS TREE
-* Code to process radiosonde measurements in folder /RADIOSONDE <br/>
-* Code to process CALIOP measurements in folder /CALIPSO <br/>
-* Code to train and test ML methods for PBLH retrieval in folder /ML <br/>
+### Processed Data
 
-## INSTALLATION AND USAGE PROCESS
-1. Pull github repository from https://github.com/andreukalu/pblh_ML/
-2. cd to project folder and activate conda environment from environment.yml:
-   ```
-   conda env create -f environment.yml
-   ```
-3. Set each
-      * pickles_path: path at which the processed data is stored [Download processed data](#processed-data-access)
-      * (optional) rs_path: path at which the raw radiosonde data is stored [Download raw data](#raw-data-access)
-      * (optional) c_path: path at which the raw caliop data is stored [Download raw data](#raw-data-access)
-4. Now you can run each part of the code of [code folders tree](#code-folders-tree)
+The preprocessed dataset (radiosonde, CALIOP, training and test sets) is available at:
+
+[Zenodo Repository – DOI: 10.5281/zenodo.15639750](https://zenodo.org/records/15639750)
+
+---
+
+### Raw Data Sources
+
+#### Radiosonde Data
+
+You can access radiosonde data from the following public archives:
+
+- [DWD – German Weather Service](https://opendata.dwd.de/)
+- [NOAA – IGRA Dataset](https://www.ncei.noaa.gov/products/weather-balloon/integrated-global-radiosonde-archive)
+- [GRUAN – Reference Upper-Air Network](https://www.gruan.org/data/measurements/sonde-launches)
+- [University of Wyoming – Upper-Air Soundings](https://weather.uwyo.edu/upperair/sounding.html)
+
+#### CALIOP Data
+
+- [NASA CALIPSO Subsetter](https://subset.larc.nasa.gov/calipso/)
+
+---
+
+## Code Structure
+
+The repository is organized as follows:
+
+- `/RADIOSONDE/` — Code for preprocessing radiosonde profiles  
+- `/CALIPSO/` — Code for processing CALIOP TAB profiles  
+- `/ML/` — Code for training and evaluating ML models for PBLH estimation  
+
+---
+
+## Installation & Usage
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/andreukalu/pblh_ML.git
+cd pblh_ML
+````
+
+### 2. Create and activate the conda environment
+
+```bash
+conda env create -f environment.yml
+conda activate pblh
+```
+
+### 3. Configure local data paths
+
+Edit the `paths_definition.py` file:
+
+```python
+pickles_path = '/your/path/to/processed/data'
+rs_path = '/optional/path/to/raw/radiosonde/data'
+c_path = '/optional/path/to/raw/calipso/data'
+```
+
+You can find these files from the [Processed Data](#processed-data) and [Raw Data Sources](#raw-data-sources) sections above.
+
+### 4. Run the pipeline
+
+Use the code in the `/RADIOSONDE/`, `/CALIPSO/`, and `/ML/` directories to preprocess radiosonde data, calipso data, and train and test ML models.
+
+---
+
+## Contact
+
+For questions, suggestions, or contributions, please open an issue or contact the repository maintainer.
