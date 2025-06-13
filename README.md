@@ -30,4 +30,8 @@ The data used comprises radiosonde vertical profiles from different sources and 
    '''
    conda env create -f environment.yml
    '''
-3. set 
+3. Set each
+      * pickles_path: path at which the processed data is stored [Download processed data](#processed-data-access)
+      * (optional) rs_path: path at which the raw radiosonde data is stored [Download raw data](#raw-data-access)
+      * (optional) c_path: path at which the raw caliop data is stored [Download raw data](#raw-data-access)
+4. Now you can run each part of the code of [code folders tree](#code-folders-tree)
